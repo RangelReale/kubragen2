@@ -3,7 +3,8 @@ from typing import Mapping, Any, Optional, Sequence, Union, MutableMapping, Muta
 from .build import DataBuilder
 from .exception import InvalidParamError
 from .option import OptionValue, Option
-from .private.optionsmerger import optionsmerger
+from .private.merger import option_merge_fallback, option_type_conflict
+from .private.optionsmerger import OptionsMerger
 from .util import dict_get_value, dict_has_name
 
 
@@ -51,7 +52,7 @@ class OptionsDataBuilder(DataBuilder):
 
     def build_prop(self, data: Union[MutableMapping, MutableSequence], key: Any) -> None:
         super().build_prop(data, key)
-        if isinstance(data[key], Option):
+        if key in data and isinstance(data[key], Option):
             data[key] = self.options._option_process(data[key])
 
     def get_value(self, data: Any) -> Any:
@@ -60,3 +61,13 @@ class OptionsDataBuilder(DataBuilder):
 
 def OptionsBuildData(options: Options, data: Any, in_place: bool = True) -> Any:
     return OptionsDataBuilder(options).build(data, in_place=in_place)
+
+
+optionsmerger = OptionsMerger(
+    [
+        (list, "append"),
+        (dict, "merge"),
+    ],
+    ['override', option_merge_fallback], ['override', option_type_conflict]
+)
+"""A dict/list merger that supports options."""

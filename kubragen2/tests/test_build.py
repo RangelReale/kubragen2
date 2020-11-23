@@ -1,6 +1,7 @@
 import unittest
 
-from kubragen2.build import DataIsNone, DisabledData, ValueData, DataGetValue, BuildData
+from kubragen2.build import BuildData
+from kubragen2.data import DataIsNone, DisabledData, ValueData, DataGetValue
 from kubragen2.exception import InvalidParamError
 
 
