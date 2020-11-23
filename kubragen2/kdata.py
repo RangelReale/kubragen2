@@ -1,4 +1,4 @@
-from typing import Optional, Mapping, Any
+from typing import Optional, Mapping, Any, Dict
 
 from .data import Data
 from .exception import InvalidOperationError
@@ -94,17 +94,19 @@ class KData_StorageClass(KData):
 
 class KData_PersistentVolume(KData):
     name: str
+    storageclass: Optional[str]
     merge_config: Optional[Any]
 
-    def __init__(self, name: str, merge_config: Optional[Any] = None):
+    def __init__(self, name: str, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
         self.name = name
+        self.storageclass = storageclass
         self.merge_config = merge_config
 
     def get_value(self) -> Any:
         return merger.merge(self.build(), self.merge_config if self.merge_config is not None else {})
 
     def build(self) -> Any:
-        return {
+        ret: Dict[Any, Any] = {
             'apiVersion': 'v1',
             'kind': 'PersistentVolume',
             'metadata': {
@@ -113,6 +115,9 @@ class KData_PersistentVolume(KData):
             'spec': {
             },
         }
+        if self.storageclass is not None:
+            ret['spec']['storageClassName'] = self.storageclass
+        return ret
 
 
 class KData_PersistentVolume_EmptyDir(KData_PersistentVolume):
@@ -127,8 +132,8 @@ class KData_PersistentVolume_EmptyDir(KData_PersistentVolume):
 class KData_PersistentVolume_HostPath(KData_PersistentVolume):
     hostpath: str
 
-    def __init__(self, name: str, hostpath: str, merge_config: Optional[Any] = None):
-        super().__init__(name=name, merge_config=merge_config)
+    def __init__(self, name: str, hostpath: str, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
+        super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
         self.hostpath = hostpath
 
     def build(self) -> Any:
@@ -142,8 +147,8 @@ class KData_PersistentVolume_HostPath(KData_PersistentVolume):
 class KData_PersistentVolume_NFS(KData_PersistentVolume):
     nfs: Any
 
-    def __init__(self, name: str, nfs: Any, merge_config: Optional[Any] = None):
-        super().__init__(name=name, merge_config=merge_config)
+    def __init__(self, name: str, nfs: Any, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
+        super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
         self.nfs = nfs
 
     def build(self) -> Any:
@@ -157,8 +162,8 @@ class KData_PersistentVolume_NFS(KData_PersistentVolume):
 class KData_PersistentVolume_CSI(KData_PersistentVolume):
     csi: Any
 
-    def __init__(self, name: str, csi: Any, merge_config: Optional[Any] = None):
-        super().__init__(name=name, merge_config=merge_config)
+    def __init__(self, name: str, csi: Any, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
+        super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
         self.csi = csi
 
     def build(self) -> Any:
@@ -171,17 +176,22 @@ class KData_PersistentVolume_CSI(KData_PersistentVolume):
 
 class KData_PersistentVolumeClaim(KData):
     name: str
+    storageclass: Optional[str]
+    namespace: Optional[str]
     merge_config: Optional[Any]
 
-    def __init__(self, name: str, merge_config: Optional[Any] = None):
+    def __init__(self, name: str, storageclass: Optional[str] = None, namespace: Optional[str] = None,
+                 merge_config: Optional[Any] = None):
         self.name = name
+        self.storageclass = storageclass
+        self.namespace = namespace
         self.merge_config = merge_config
 
     def get_value(self) -> Any:
         return merger.merge(self.build(), self.merge_config if self.merge_config is not None else {})
 
     def build(self) -> Any:
-        return {
+        ret: Dict[Any, Any] = {
             'apiVersion': 'v1',
             'kind': 'PersistentVolumeClaim',
             'metadata': {
@@ -190,3 +200,8 @@ class KData_PersistentVolumeClaim(KData):
             'spec': {
             },
         }
+        if self.storageclass is not None:
+            ret['spec']['storageClassName'] = self.storageclass
+        if self.namespace is not None:
+            ret['metadata']['namespace'] = self.namespace
+        return ret

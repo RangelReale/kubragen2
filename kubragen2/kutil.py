@@ -1,4 +1,6 @@
+import base64
 import re
+from typing import Union
 
 from kubragen2.exception import InvalidParamError
 
@@ -36,3 +38,29 @@ def unit_to_bytes(value: str) -> int:
     else:
         raise InvalidParamError('Unknown byte unit "{}"'.format(xunit))
     return xvalue
+
+
+def secret_data_encode(data: Union[bytes, str]) -> str:
+    """
+    Encode bytes or str secret using the current provider.
+    By default encoding is done using base64, using the utf-8 charset.
+
+    :param data: Data to encode
+    :return: encoded secret
+    :raises: KGException
+    """
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    return secret_data_encode_bytes(data).decode("utf-8")
+
+
+def secret_data_encode_bytes(data: bytes) -> bytes:
+    """
+    Encode bytes secret using the current provider.
+    By default encoding is done using base64, and raw bytes are returned
+
+    :param data: Data to encode
+    :return: encoded secret
+    :raises: KGException
+    """
+    return base64.b64encode(data)
