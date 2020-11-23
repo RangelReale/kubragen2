@@ -1,0 +1,57 @@
+from typing import Mapping, Any, Sequence, List, MutableMapping
+
+from kubragen2.exception import InvalidParamError
+
+
+def urljoin(*args: str) -> str:
+    """
+    Join an array of strings using a forward-slash representing an url.
+
+    :param args: list of strings to join
+    :return: joined strings
+    """
+    return "/".join(map(lambda x: str(x).rstrip('/'), args))
+
+
+def dict_has_name(dict: Mapping, name: str) -> bool:
+    """Checks if the dict has a name using a dotted accessor-string
+
+    :param dict: source dictionary
+    :param name: dotted value name
+    """
+    current_data = dict
+    for chunk in name.split('.'):
+        if chunk not in current_data:
+            return False
+        current_data = current_data.get(chunk, {})
+    return True
+
+
+def dict_get_value(dict: Mapping, name: str) -> Any:
+    """Gets data from a dictionary using a dotted accessor-string
+
+    :param dict: source dictionary
+    :param name: dotted value name
+    """
+    current_data = dict
+    for chunk in name.split('.'):
+        if not isinstance(current_data, (Mapping, Sequence)):
+            raise InvalidParamError('Could not find item "{}"'.format(name))
+        if chunk not in current_data:
+            raise InvalidParamError('Could not find item "{}"'.format(name))
+        current_data = current_data.get(chunk, {})
+    return current_data
+
+
+def dict_flatten(d, parent_key='', sep='.') -> Mapping:
+    """
+    Flatten a dict to a single level.
+    """
+    items: List[Any] = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, MutableMapping):
+            items.extend(dict_flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
