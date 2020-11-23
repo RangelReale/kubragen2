@@ -2,7 +2,8 @@ from typing import Mapping, Any, Optional, Sequence, Union, MutableMapping, Muta
 
 from .build import DataBuilder
 from .exception import InvalidParamError
-from .merger import Merger
+from .option import OptionValue, Option
+from .private.optionsmerger import optionsmerger
 from .util import dict_get_value, dict_has_name
 
 
@@ -13,7 +14,7 @@ class Options:
         self.options = {}
         for option in options:
             if option is not None:
-                self.options = Merger.merge(self.options, option)
+                self.options = optionsmerger.merge(self.options, option)
 
     def has_option(self, name: str) -> Any:
         return dict_has_name(self.options, name)
@@ -39,17 +40,6 @@ class Options:
             else:
                 raise InvalidParamError('Unknown Optiona type: "{}"'.format(repr(value)))
         return value
-
-
-class Option:
-    pass
-
-
-class OptionValue(Option):
-    name: str
-
-    def __init__(self, name: str):
-        self.name = name
 
 
 class OptionsDataBuilder(DataBuilder):

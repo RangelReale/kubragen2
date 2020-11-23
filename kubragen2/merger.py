@@ -2,7 +2,7 @@ import deepmerge  # type: ignore
 
 from .private.merger import option_check_key_exist, option_merge_fallback, option_type_conflict
 
-MergerNoCreate = deepmerge.Merger(
+merger_nocreate = deepmerge.Merger(
     [
         (list, "append"),
         (dict, [option_check_key_exist, "merge"]),
@@ -12,7 +12,7 @@ MergerNoCreate = deepmerge.Merger(
 """A dict/list merger that doesn't allow dict key creation, based on the :mod:`deepmerge` module."""
 
 # A merger that allows key creation
-Merger = deepmerge.Merger(
+merger = deepmerge.Merger(
     [
         (list, "append"),
         (dict, "merge"),
