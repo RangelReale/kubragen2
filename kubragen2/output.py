@@ -218,12 +218,15 @@ class OutputFile_Yaml(OutputFile):
         for d in self.data:
             if d is None:
                 continue
+            if isinstance(d, OD_Raw):
+                ret.append(dumper.dump(d))
+                continue
             if not is_first:
                 ret.append('---')
             if isinstance(d, Sequence) and len(d) == 0:
                 continue
             is_first = False
-            if isinstance(d, Mapping) or isinstance(d, Sequence):
+            if not isinstance(d, str) and (isinstance(d, Mapping) or isinstance(d, Sequence)):
                 if isinstance(d, Sequence):
                     ret.append(yaml.dump_all(d, Dumper=yaml.SafeDumper, **yaml_dump_params))
                 else:
