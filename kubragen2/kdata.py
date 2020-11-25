@@ -139,7 +139,9 @@ class KData_PersistentVolume_HostPath(KData_PersistentVolume):
     def build(self) -> Any:
         return merger.merge(super().build(), {
             'spec': {
-                'hostPath': self.hostpath
+                'hostPath': {
+                    'path': self.hostpath,
+                }
             },
         })
 
