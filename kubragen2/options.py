@@ -37,7 +37,7 @@ class Options:
     def _option_process(self, value: Any) -> Any:
         if isinstance(value, Option):
             if isinstance(value, OptionValue):
-                return self.option_get(value.name)
+                return value.process_value(self.option_get(value.name))
             else:
                 raise InvalidParamError('Unknown Optiona type: "{}"'.format(repr(value)))
         return value
