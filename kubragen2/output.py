@@ -60,10 +60,12 @@ class OutputFile:
     data: List[Any]
     fileid: str
     is_sequence: bool
+    reverse: bool
 
-    def __init__(self, filename: str, is_sequence: bool = True):
+    def __init__(self, filename: str, is_sequence: bool = True, reverse: bool = False):
         self.filename = filename
         self.is_sequence = is_sequence
+        self.reverse = reverse
         self.fileid = str(uuid.uuid4()).replace('-', '')
         self.data = []
 
@@ -73,7 +75,10 @@ class OutputFile:
 
         :param data: string or relevant class
         """
-        self.data.append(data)
+        if self.reverse:
+            self.data.insert(0, data)
+        else:
+            self.data.append(data)
 
     def output_filename(self, seq: Optional[int] = None) -> str:
         """
@@ -182,8 +187,8 @@ class OutputFile_ShellScript(OutputFile):
     An :class:`kubragen2.output.OutputFile` that is a shell script.
     It is saved with newlines as LF in all platforms, and is marked as executable.
     """
-    def __init__(self, filename: str, is_sequence: bool = False):
-        super().__init__(filename, is_sequence)
+    def __init__(self, filename: str, is_sequence: bool = False, reverse: bool = False):
+        super().__init__(filename=filename, is_sequence=is_sequence, reverse=reverse)
 
     def file_newline(self) -> Optional[str]:
         return '\n'
