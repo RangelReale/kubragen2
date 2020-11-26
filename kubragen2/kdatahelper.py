@@ -27,7 +27,7 @@ class KDataHelper_ConfigFile(KDataHelper):
 
 class KDataHelper_Env(KDataHelper):
     """
-    KData helpers for Kubernetes *container.env* values.
+    KData helpers for Kubernetes `container.env` values.
     """
     @staticmethod
     def info(base_value: Optional[Any] = None, value: Optional[Any] = None,
@@ -113,7 +113,7 @@ class KDataHelper_Env(KDataHelper):
 
 class KDataHelper_Volume(KDataHelper):
     """
-    KData helpers for Kubernetes *podSpec.volumes* values.
+    KData helpers for Kubernetes `podSpec.volumes` values.
     """
     @staticmethod
     def info(base_value: Optional[Any] = None, value: Optional[Any] = None,
