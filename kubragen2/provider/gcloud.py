@@ -8,9 +8,10 @@ class KData_PersistentVolume_GCEPersistentDisk(KData_PersistentVolume):
     fsType: Optional[str]
     readOnly: Optional[bool]
 
-    def __init__(self, name: str, pdName: Optional[str] = None, fsType: Optional[str] = None,
+    def __init__(self, name: str, storageclass: Optional[str] = None, pdName: Optional[str] = None,
+                 fsType: Optional[str] = None,
                  readOnly: Optional[bool] = None, merge_config: Optional[Any] = None):
-        super().__init__(name, merge_config)
+        super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
         self.pdName = pdName
         self.fsType = fsType
         self.readOnly = readOnly
