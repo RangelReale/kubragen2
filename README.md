@@ -701,13 +701,14 @@ def main():
     #
     # OUTPUT
     #
-    output_path = os.path.join(args.output_path, '{}-{}'.format(
-        args.provider, datetime.datetime.today().strftime("%Y%m%d-%H%M%S")))
-    print('Saving files to {}'.format(output_path))
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    out.output(OutputDriver_Print())
 
-    out.output(OutputDriver_Directory(output_path))
+    # output_path = os.path.join(args.output_path, '{}-{}'.format(
+    #     args.provider, datetime.datetime.today().strftime("%Y%m%d-%H%M%S")))
+    # print('Saving files to {}'.format(output_path))
+    # if not os.path.exists(output_path):
+    #     os.makedirs(output_path)
+    # out.output(OutputDriver_Directory(output_path))
 
 
 if __name__ == "__main__":
