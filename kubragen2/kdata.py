@@ -17,12 +17,12 @@ class KData_Manual(KData):
     """
     A :class:`KData` that merges value manually.
 
-    :param merge_value: A Mapping to merge on the result.
+    :param merge_config: A Mapping to merge on the result.
     """
-    merge_value: Optional[Mapping[Any, Any]]
+    merge_config: Mapping[Any, Any]
 
-    def __init__(self, merge_value: Optional[Mapping[Any, Any]] = None):
-        self.merge_value = merge_value
+    def __init__(self, merge_config: Mapping[Any, Any] = None):
+        self.merge_config = merge_config
 
 
 class KData_Value(KData):
@@ -31,7 +31,7 @@ class KData_Value(KData):
 
     :param value: the data value
     """
-    value: str
+    value: Any
 
     def __init__(self, value: Any):
         self.value = value
@@ -68,6 +68,12 @@ class KData_Secret(KData):
 
 
 class KData_Env(KData):
+    """
+    A :class:`KData` that represents a Kubernetes `container.env` value.
+
+    :param name: Env name
+    :param value: Env value. Can be another :class:`KData`.
+    """
     name: str
     value: Any
 
@@ -77,6 +83,11 @@ class KData_Env(KData):
 
 
 class KData_StorageClass(KData):
+    """
+    A :class:`KData` that represents a Kubernetes storage class.
+
+    :param name: Storage class name
+    """
     name: str
 
     def __init__(self, name: str):
@@ -93,6 +104,13 @@ class KData_StorageClass(KData):
 
 
 class KData_PersistentVolume(KData):
+    """
+    A :class:`KData` that represents a Kubernetes PersistentVolume.
+
+    :param name: Persistent volume name
+    :param storageclass: storage class
+    :param merge_config: A Mapping to merge on the result.
+    """
     name: str
     storageclass: Optional[str]
     merge_config: Optional[Any]
@@ -121,6 +139,9 @@ class KData_PersistentVolume(KData):
 
 
 class KData_PersistentVolume_EmptyDir(KData_PersistentVolume):
+    """
+    A :class:`KData` that represents a Kubernetes PersistentVolume of type EmptyDir.
+    """
     def build(self) -> Any:
         return merger.merge(super().build(), {
             'spec': {
@@ -130,23 +151,37 @@ class KData_PersistentVolume_EmptyDir(KData_PersistentVolume):
 
 
 class KData_PersistentVolume_HostPath(KData_PersistentVolume):
-    hostpath: str
+    """
+    A :class:`KData` that represents a Kubernetes PersistentVolume of type HostPath.
 
-    def __init__(self, name: str, hostpath: str, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
+    :param name: Persistent volume name
+    :param hostpath: the hostPath path, normally a Mapping with a `path` key.
+    :param storageclass: storage class
+    :param merge_config: A Mapping to merge on the result.
+    """
+    hostpath: Mapping[Any, Any]
+
+    def __init__(self, name: str, hostpath: Mapping[Any, Any], storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
         super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
         self.hostpath = hostpath
 
     def build(self) -> Any:
         return merger.merge(super().build(), {
             'spec': {
-                'hostPath': {
-                    'path': self.hostpath,
-                }
+                'hostPath': self.hostpath,
             },
         })
 
 
 class KData_PersistentVolume_NFS(KData_PersistentVolume):
+    """
+    A :class:`KData` that represents a Kubernetes PersistentVolume of type NFS.
+
+    :param name: Persistent volume name
+    :param hostpath: the nfs configuration, normally a Mapping
+    :param storageclass: storage class
+    :param merge_config: A Mapping to merge on the result.
+    """
     nfs: Any
 
     def __init__(self, name: str, nfs: Any, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
@@ -162,6 +197,14 @@ class KData_PersistentVolume_NFS(KData_PersistentVolume):
 
 
 class KData_PersistentVolume_CSI(KData_PersistentVolume):
+    """
+    A :class:`KData` that represents a Kubernetes PersistentVolume of type CSI.
+
+    :param name: Persistent volume name
+    :param hostpath: the CSI configuration, normally a Mapping
+    :param storageclass: storage class
+    :param merge_config: A Mapping to merge on the result.
+    """
     csi: Any
 
     def __init__(self, name: str, csi: Any, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
@@ -177,6 +220,14 @@ class KData_PersistentVolume_CSI(KData_PersistentVolume):
 
 
 class KData_PersistentVolumeClaim(KData):
+    """
+    A :class:`KData` that represents a Kubernetes PersistentVolumeClaim.
+
+    :param name: Persistent volume name
+    :param storageclass: storage class
+    :param namespace: claim namespace
+    :param merge_config: A Mapping to merge on the result.
+    """
     name: str
     storageclass: Optional[str]
     namespace: Optional[str]

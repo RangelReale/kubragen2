@@ -1,5 +1,4 @@
-import copy
-from typing import Any, MutableMapping, MutableSequence, Union
+from typing import Any
 
 from .exception import InvalidParamError
 
@@ -41,7 +40,7 @@ class ValueData(Data):
     :param enabled: whether the data is enabled
     :param disabled_if_none: set enabled=False if value is None
     """
-    def __init__(self, value = None, enabled: bool = True, disabled_if_none: bool = False):
+    def __init__(self, value: Any = None, enabled: bool = True, disabled_if_none: bool = False):
         self.value = value
         self.enabled = enabled
         if disabled_if_none and value is None:

@@ -5,6 +5,9 @@ from ..merger import merger
 
 
 class KData_PersistentVolume_CSI_DOBS(KData_PersistentVolume_CSI):
+    """
+    A CSI DOBS PersistentVolume.
+    """
     noformat: Optional[bool]
     nodriver: bool
 

@@ -3,7 +3,10 @@ from typing import Any, Optional, Dict
 from ..kdata import KData_PersistentVolume, KData_PersistentVolume_CSI
 
 
-class KData_PersistentVolume_GCEPersistentDisk(KData_PersistentVolume):
+class KData_PersistentVolume_AWSElasticBlockStore(KData_PersistentVolume):
+    """
+    A KData_PersistentVolume_AWSElasticBlockStore PersistentVolume.
+    """
     volumeID: Optional[str]
     fsType: Optional[str]
     readOnly: Optional[bool]
@@ -31,6 +34,9 @@ class KData_PersistentVolume_GCEPersistentDisk(KData_PersistentVolume):
 
 
 class KData_PersistentVolume_CSI_AWSEBS(KData_PersistentVolume_CSI):
+    """
+    A CSI AWS EBS PersistentVolume.
+    """
     nodriver: bool
 
     def __init__(self, name: str, csi: Any, storageclass: Optional[str] = None,
@@ -46,6 +52,9 @@ class KData_PersistentVolume_CSI_AWSEBS(KData_PersistentVolume_CSI):
 
 
 class KData_PersistentVolume_CSI_AWSEFS(KData_PersistentVolume_CSI):
+    """
+    A CSI AWS EFS PersistentVolume.
+    """
     nodriver: bool
 
     def __init__(self, name: str, csi: Any, storageclass: Optional[str] = None,

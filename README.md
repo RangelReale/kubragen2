@@ -3,6 +3,13 @@
 [![PyPI version](https://img.shields.io/pypi/v/kubragen2.svg)](https://pypi.python.org/pypi/kubragen2/)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/kubragen2.svg)](https://pypi.python.org/pypi/kubragen2/)
 
+KubraGen2 is a Kubernetes YAML generator library that makes it possible to generate
+configurations using the full power of the Python programming language.
+
+Combined with [Helmion](https://github.com/RangelReale/helmion), it is possible to use [Helm](https://helm.sh/)
+as a Kubernetes Yaml source, customize them, and generate a script for applying it directly without using
+the Helm release process. 
+
 ## Overview
 
 See source code for examples

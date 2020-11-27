@@ -55,6 +55,7 @@ class OutputFile:
 
     :param filename: base file name. Suffixes and/or prefixes can be added as needed
     :param is_sequence: whether the file is part of a sequence, if so it will be output with a numbered prefix
+    :param reverse: if True, output data in the reverse order it was added
     """
     filename: str
     data: List[Any]
@@ -122,8 +123,6 @@ class OutputFile:
 
 class OutputDriver:
     """Driver interface to output files."""
-
-
     def write_file(self, file: OutputFile, filename: str, filecontents: Any) -> None:
         """
         Outputs a file.
@@ -184,7 +183,7 @@ class OutputProject:
 
 class OutputFile_ShellScript(OutputFile):
     """
-    An :class:`kubragen2.output.OutputFile` that is a shell script.
+    An :class:`OutputFile` that is a shell script.
     It is saved with newlines as LF in all platforms, and is marked as executable.
     """
     def __init__(self, filename: str, is_sequence: bool = False, reverse: bool = False):
@@ -208,7 +207,7 @@ class OutputFile_ShellScript(OutputFile):
 
 class OutputFile_Yaml(OutputFile):
     """
-    An :class:`kubragen2.output.OutputFile` that is generic YAML file.
+    An :class:`OutputFile` that is generic YAML file.
     No special Kubernetes-specific options will be applied.
     """
     def yaml_params(self) -> Mapping[Any, Any]:
@@ -243,7 +242,7 @@ class OutputFile_Yaml(OutputFile):
 
 class OutputFile_Kubernetes(OutputFile_Yaml):
     """
-    An :class:`kubragen2.output.OutputFile` that is Kubernetes YAML file.
+    An :class:`OutputFile` that is Kubernetes YAML file.
     Special Kubernetes-specific options can be applied.
     """
     pass
@@ -251,7 +250,7 @@ class OutputFile_Kubernetes(OutputFile_Yaml):
 
 class OutputDriver_Print(OutputDriver):
     """
-    An :class:`kubragen2.output.OutputDriver` that prints the files to stdout.
+    An :class:`OutputDriver` that prints the files to stdout.
     """
     def write_file(self, file: OutputFile, filename, filecontents) -> None:
         print('****** BEGIN FILE: {} ********'.format(filename))
@@ -261,7 +260,7 @@ class OutputDriver_Print(OutputDriver):
 
 class OutputDriver_Directory(OutputDriver):
     """
-    An :class:`kubragen2.output.OutputDriver` that writes files to a directory.
+    An :class:`OutputDriver` that writes files to a directory.
 
     :param path: the output directory
     """

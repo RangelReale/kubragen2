@@ -1,4 +1,4 @@
-from typing import Sequence, Any, Optional, Mapping, List
+from typing import Sequence, Any, Optional, Mapping, List, Dict
 
 from .configfile import ConfigFileRender, ConfigFile, ConfigFileRenderMulti
 from .data import Data, DisabledData
@@ -13,6 +13,14 @@ class KDataHelper:
 
 
 class KDataHelper_ConfigFile(KDataHelper):
+    """
+    Outputs a configuration file using :class:`ConfigFile` if possible, otherwise just output a string.
+
+    :param value: the value configured by the user, possible a :class:`ConfigFile`
+    :param options: options to be used by the config file
+    :param renderers: a list of config file renderers to be considered, in order
+    :return: a configuration file content as string
+    """
     @staticmethod
     def info(value: Any, options: Options, renderers: Sequence[ConfigFileRender]) -> Any:
         if isinstance(value, str):
@@ -30,8 +38,8 @@ class KDataHelper_Env(KDataHelper):
     KData helpers for Kubernetes `container.env` values.
     """
     @staticmethod
-    def info(base_value: Optional[Any] = None, value: Optional[Any] = None,
-             default_value: Optional[Any] = None, enabled: bool = True, disable_if_none: bool = False) -> Any:
+    def info(base_value: Optional[Any] = None, value: Optional[Any] = None, enabled: bool = True,
+             disable_if_none: bool = False) -> Any:
         """
         Outputs a configuration compatible with the Kubernetes *container.env*.
 
@@ -40,14 +48,11 @@ class KDataHelper_Env(KDataHelper):
         :param base_value: the base dict that is merged with the result, normally containing the name of the object.
         :type base_value: Mapping
         :param value: a value configured by the user, possibly None
-        :param value_if_kdata: a :class:`kubragen.kdata.KData` value configured by the user, possibly None. If
-            not a KData instance, **it will be ignored**, and you are supposed to set a value in *default_value.
-        :param default_value: a default value to use if value is None
         :param enabled: whether the information is enabled. If not, a :class:`kubragen.data.DisabledData` is returned
         :param disable_if_none: automatically disable if value and value_if_kdata is None
         :return: a configuration compatible with the Kubernetes *container.env* specification
         """
-        if not enabled:
+        if not enabled or (disable_if_none and value is None):
             return DisabledData()
 
         ret = base_value
@@ -60,15 +65,16 @@ class KDataHelper_Env(KDataHelper):
             }
             value = value.value
 
+        merge_config: Mapping[Any, Any] = {}
         if isinstance(value, KData):
             if isinstance(value, KData_Manual):
-                default_value = merger.merge(ret, value.merge_value)
+                merge_config = value.merge_config
             elif isinstance(value, KData_Value):
-                default_value = {
+                merge_config = {
                     'value': value.value,
                 }
             elif isinstance(value, KData_ConfigMap):
-                default_value = {
+                merge_config = {
                     'valueFrom': {
                         'configMapKeyRef': {
                             'name': value.configmapName,
@@ -77,7 +83,7 @@ class KDataHelper_Env(KDataHelper):
                     },
                 }
             elif isinstance(value, KData_Secret):
-                default_value = {
+                merge_config = {
                     'valueFrom': {
                         'secretKeyRef': {
                             'name': value.secretName,
@@ -88,18 +94,14 @@ class KDataHelper_Env(KDataHelper):
             else:
                 raise InvalidParamError('Unsupported KData: "{}"'.format(repr(value)))
         elif value is not None:
-            if isinstance(value, Mapping):
-                default_value = value
+            if isinstance(value, Mapping) and not isinstance(value, str):
+                merge_config = value
             else:
-                default_value = {
+                merge_config = {
                     'value': value,
                 }
 
-        # Check again
-        # if disable_if_none and default_value is None:
-        #     return DisabledData()
-
-        return merger.merge(ret, default_value)
+        return merger.merge(ret, merge_config)
 
     @staticmethod
     def list(value: Optional[Sequence[Any]] = None) -> Sequence[Any]:
@@ -117,36 +119,33 @@ class KDataHelper_Volume(KDataHelper):
     """
     @staticmethod
     def info(base_value: Optional[Any] = None, value: Optional[Any] = None,
-             default_value: Optional[Any] = None, key_path: Optional[str] = None, enabled: bool = True,
+             key_path: Optional[str] = None, enabled: bool = True,
              disable_if_none: bool = False):
         """
-        Outputs a configuration compatible with the Kubernetes *podSpec.volume* for the passed :class:`KData`,
-        with a default value if it was not configured by the user.
+        Outputs a configuration compatible with the Kubernetes *podSpec.volume*.
 
         :param base_value: the base dict that is merged with the result, normally containing the name of the object.
         :type base_value: dict
         :param value: a value configured by the user, possibly None
-        :param value_if_kdata: a :class:`kubragen.kdata.KData` value configured by the user, possibly None. If
-            not a KData instance, **it will be ignored**, and you are supposed to set a value in *default_value.
-        :param default_value: a default value to use if value is None
         :param enabled: whether the information is enabled. If not, a :class:`kubragen.data.DisabledData` is returned
         :param disable_if_none: automatically disable if value and value_if_kdata is None
         :return: a configuration compatible with the Kubernetes *podSpec.volume* specification
         """
-        if not enabled:
+        if not enabled or (disable_if_none and value is None):
             return DisabledData()
 
         ret = base_value
         if ret is None:
             ret = {}
 
+        merge_config: Mapping[Any, Any] = {}
         if isinstance(value, KData):
             if isinstance(value, KData_Manual):
-                default_value = merger.merge(ret, value.merge_value)
+                merge_config = value.merge_config
             elif isinstance(value, KData_Value):
-                default_value = value.value
+                merge_config = value.value
             elif isinstance(value, KData_ConfigMap):
-                default_value = {
+                merge_config = {
                     'configMap': {
                         'name': value.configmapName,
                         'items': [{
@@ -156,7 +155,7 @@ class KDataHelper_Volume(KDataHelper):
                     }
                 }
             elif isinstance(value, KData_Secret):
-                default_value = {
+                merge_config = {
                     'secret': {
                         'secretName': value.secretName,
                         'items': [{
@@ -168,13 +167,9 @@ class KDataHelper_Volume(KDataHelper):
             else:
                 raise InvalidParamError('Unsupported KData: "{}"'.format(repr(value)))
         elif value is not None:
-            if isinstance(value, Mapping):
-                default_value = value
+            if isinstance(value, Mapping) and not isinstance(value, str):
+                merge_config = value
             else:
                 raise InvalidParamError('Unsupported Volume spec: "{}"'.format(str(value)))
 
-        # Check again
-        # if disable_if_none and default_value is None:
-        #     return DisabledData()
-
-        return merger.merge(ret, default_value)
+        return merger.merge(ret, merge_config)

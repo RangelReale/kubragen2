@@ -9,6 +9,12 @@ from .util import dict_get_value, dict_has_name
 
 
 class Options:
+    """
+    Helper used to extract options from a list of merged Mapping.
+    Uses dotted property format for easy access.
+
+    :param options: list of Mapping to merge in order.
+    """
     options: Mapping[Any, Any]
 
     def __init__(self, *options: Optional[Mapping[Any, Any]]):
@@ -18,15 +24,28 @@ class Options:
                 self.options = optionsmerger.merge(self.options, option)
 
     def has_option(self, name: str) -> Any:
+        """
+        Checks if the dotted-name option exists.
+        """
         return dict_has_name(self.options, name)
 
     def option_get(self, name: str) -> Any:
+        """
+        Gets the dotted-name option value.
+        """
         return self._option_process(dict_get_value(self.options, name))
 
     def option_get_opt(self, name: str, default_value: Any) -> Any:
+        """
+        Gets the dotted-name option value, using a default if not set or `None` or blank string.
+        """
         return self.option_get_opt_custom(name, default_value, [None, ''])
 
     def option_get_opt_custom(self, name: str, default_value: Any, empty_values: Sequence[Any]) -> Any:
+        """
+        Gets the dotted-name option value, using a default, and allowing customizing the values that
+        are considered empty.
+        """
         if not self.has_option(name):
             return default_value
         value = self.option_get(name)
@@ -35,6 +54,9 @@ class Options:
         return value
 
     def _option_process(self, value: Any) -> Any:
+        """
+        Process custom :class:`Option` types.
+        """
         if isinstance(value, Option):
             if isinstance(value, OptionValue):
                 return value.process_value(self.option_get(value.name))
@@ -44,6 +66,9 @@ class Options:
 
 
 class OptionsDataBuilder(DataBuilder):
+    """
+    A :class:`DataBuilder` that takes in account :class:`Option` instances.
+    """
     options: Options
 
     def __init__(self, options: Options):
@@ -60,6 +85,9 @@ class OptionsDataBuilder(DataBuilder):
 
 
 def OptionsBuildData(options: Options, data: Any, in_place: bool = True) -> Any:
+    """
+    Build data taking in account :class:`Option` instances.
+    """
     return OptionsDataBuilder(options).build(data, in_place=in_place)
 
 

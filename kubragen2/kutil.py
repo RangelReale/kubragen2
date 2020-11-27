@@ -6,6 +6,12 @@ from kubragen2.exception import InvalidParamError
 
 
 def unit_to_bytes(value: str) -> int:
+    """
+    Convert Kubernetes units to byte.
+
+    :param value: a Kubernetes unit.
+    :return: the byte equivalent of the unit.
+    """
     m = re.match('^([0-9]+)(.*)$', value)
     if m is None:
         raise InvalidParamError('Value is not a bytes unit')
@@ -42,12 +48,12 @@ def unit_to_bytes(value: str) -> int:
 
 def secret_data_encode(data: Union[bytes, str]) -> str:
     """
-    Encode bytes or str secret using the current provider.
-    By default encoding is done using base64, using the utf-8 charset.
+    Encode bytes or str Kuberentes secret.
+    The encoding is done using base64, using the utf-8 charset.
 
     :param data: Data to encode
     :return: encoded secret
-    :raises: KGException
+    :raises KG2Exception: on error
     """
     if isinstance(data, str):
         data = data.encode('utf-8')
@@ -57,10 +63,10 @@ def secret_data_encode(data: Union[bytes, str]) -> str:
 def secret_data_encode_bytes(data: bytes) -> bytes:
     """
     Encode bytes secret using the current provider.
-    By default encoding is done using base64, and raw bytes are returned
+    The encoding is done using base64, and raw bytes are returned
 
     :param data: Data to encode
     :return: encoded secret
-    :raises: KGException
+    :raises KG2Exception: on error
     """
     return base64.b64encode(data)

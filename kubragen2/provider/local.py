@@ -4,6 +4,9 @@ from ..kdata import KData_PersistentVolumeClaim
 
 
 class KData_PersistentVolumeClaim_NoSelector(KData_PersistentVolumeClaim):
+    """
+    A PersistentVolumeClaim that doesn't support selectors.
+    """
     volumename: str
 
     def __init__(self, name: str, volumeName: str, storageclass: Optional[str] = None,

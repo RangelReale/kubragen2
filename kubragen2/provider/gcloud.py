@@ -4,6 +4,9 @@ from ..kdata import KData_PersistentVolume, KData_PersistentVolume_CSI
 
 
 class KData_PersistentVolume_GCEPersistentDisk(KData_PersistentVolume):
+    """
+    A GCEPersistentDisk PersistentVolume.
+    """
     pdName: Optional[str]
     fsType: Optional[str]
     readOnly: Optional[bool]
@@ -31,6 +34,9 @@ class KData_PersistentVolume_GCEPersistentDisk(KData_PersistentVolume):
 
 
 class KData_PersistentVolume_CSI_GCEPD(KData_PersistentVolume_CSI):
+    """
+    A CSI GCEPD PersistentVolume.
+    """
     nodriver: bool
 
     def __init__(self, name: str, csi: Any, storageclass: Optional[str] = None,
