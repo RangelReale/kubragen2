@@ -10,6 +10,8 @@ Combined with [Helmion](https://github.com/RangelReale/helmion), it is possible 
 as a Kubernetes Yaml source, customize them, and generate a script for applying it directly without using
 the Helm release process. 
 
+See [Kubragen2 Samples](https://github.com/RangelReale/kubragen2_samples) for real-life examples.
+
 ## Overview
 
 See source code for examples
