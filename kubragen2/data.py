@@ -3,7 +3,14 @@ from typing import Any
 from .exception import InvalidParamError
 
 
-class Data:
+class BaseData:
+    """
+    Base class to represent configurable data.
+    """
+    pass
+
+
+class Data(BaseData):
     """
     Base class to represent data that can be disabled by a flag.
     The :func:`get_value` function allows for dynamic code generation if needed.

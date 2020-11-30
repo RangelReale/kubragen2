@@ -1,7 +1,8 @@
 import copy
 from typing import Any, MutableMapping, MutableSequence, Union
 
-from .data import DataGetValue, Data
+from .data import DataGetValue, Data, BaseData
+from .exception import InvalidOperationError
 
 
 class DataBuilder:
@@ -9,11 +10,14 @@ class DataBuilder:
         """
         Cleanup instances of Data class in Mapping or Sequence.
         """
-        if isinstance(data[key], Data):
-            if not data[key].is_enabled():
-                del data[key]
+        if isinstance(data[key], BaseData):
+            if isinstance(data[key], Data):
+                if not data[key].is_enabled():
+                    del data[key]
+                else:
+                    data[key] = data[key].get_value()
             else:
-                data[key] = data[key].get_value()
+                raise InvalidOperationError('Cannot use BaseData in build')
 
     def build(self, data: Any, in_place: bool = True) -> Any:
         """

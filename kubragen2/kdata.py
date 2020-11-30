@@ -1,16 +1,16 @@
-from typing import Optional, Mapping, Any, Dict
+import copy
+from typing import Optional, Mapping, Any, Dict, Sequence, Type
 
 from .data import Data
-from .exception import InvalidOperationError
+from .exception import InvalidParamError
 from .merger import merger
 
 
 class KData(Data):
-    def is_enabled(self) -> bool:
-        return True
-
-    def get_value(self) -> Any:
-        raise InvalidOperationError('Cannot get value of KData')
+    """
+    Base data for Kubernetes objects
+    """
+    pass
 
 
 class KData_Manual(KData):
@@ -103,6 +103,43 @@ class KData_StorageClass(KData):
         }
 
 
+class KData_PersistentVolume_Config:
+    merge_config: Optional[Mapping[Any, Any]]
+
+    def __init__(self, merge_config: Optional[Mapping[Any, Any]] = None):
+        self.merge_config = merge_config
+
+
+class KData_PersistentVolume_Request:
+    name: str
+    selector_labels: Optional[Mapping[str, Any]]
+    storageclassname: Optional[str]
+    storage: Optional[str]
+    access_modes: Optional[Sequence[str]]
+    merge_config: Optional[Mapping[Any, Any]]
+    configs: Optional[Sequence[KData_PersistentVolume_Config]]
+
+    def __init__(self, name: str, selector_labels: Optional[Mapping[str, Any]] = None,
+                 storageclassname: Optional[str] = None, storage: Optional[str] = None,
+                 access_modes: Optional[Sequence[str]] = None,
+                 merge_config: Optional[Mapping[Any, Any]] = None,
+                 configs: Optional[Sequence[KData_PersistentVolume_Config]] = None):
+        self.name = name
+        self.selector_labels = selector_labels
+        self.storageclassname = storageclassname
+        self.storage = storage
+        self.access_modes = access_modes
+        self.merge_config = merge_config
+        self.configs = configs
+
+    def get_config(self, cls: Type[KData_PersistentVolume_Config]) -> Optional[KData_PersistentVolume_Config]:
+        if self.configs is not None:
+            for c in self.configs:
+                if isinstance(c, cls):
+                    return c
+        return None
+
+
 class KData_PersistentVolume(KData):
     """
     A :class:`KData` that represents a Kubernetes PersistentVolume.
@@ -111,39 +148,41 @@ class KData_PersistentVolume(KData):
     :param storageclass: storage class
     :param merge_config: A Mapping to merge on the result.
     """
-    name: str
-    storageclass: Optional[str]
-    merge_config: Optional[Any]
-
-    def __init__(self, name: str, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
-        self.name = name
-        self.storageclass = storageclass
-        self.merge_config = merge_config
-
-    def get_value(self) -> Any:
-        return merger.merge(self.build(), self.merge_config if self.merge_config is not None else {})
-
-    def build(self) -> Any:
+    def internal_build(self, req: KData_PersistentVolume_Request) -> Mapping[Any, Any]:
         ret: Dict[Any, Any] = {
             'apiVersion': 'v1',
             'kind': 'PersistentVolume',
             'metadata': {
-                'name': self.name,
+                'name': req.name,
             },
             'spec': {
             },
         }
-        if self.storageclass is not None:
-            ret['spec']['storageClassName'] = self.storageclass
+        if req.storageclassname is not None:
+            ret['spec']['storageClassName'] = req.storageclassname
+        if req.selector_labels is not None:
+            ret['metadata']['labels'] = req.selector_labels
+        if req.storage is not None:
+            ret['spec']['capacity'] = {
+                'storage': req.storage,
+            }
+        if req.access_modes is not None:
+            ret['spec']['accessModes'] = req.access_modes
         return ret
+
+    def build(self, req: KData_PersistentVolume_Request) -> Mapping[Any, Any]:
+        return merger.merge(copy.deepcopy(self.internal_build(req)), req.merge_config if req.merge_config is not None else {})
+
+    def build_claim(self, pvc: 'KData_PersistentVolumeClaim', req: 'KData_PersistentVolumeClaim_Request') -> Mapping[Any, Any]:
+        return pvc.build(req)
 
 
 class KData_PersistentVolume_EmptyDir(KData_PersistentVolume):
     """
     A :class:`KData` that represents a Kubernetes PersistentVolume of type EmptyDir.
     """
-    def build(self) -> Any:
-        return merger.merge(super().build(), {
+    def internal_build(self, req: KData_PersistentVolume_Request) -> Mapping[Any, Any]:
+        return merger.merge(self.internal_build(req), {
             'spec': {
                 'emptyDir': {}
             },
@@ -159,18 +198,24 @@ class KData_PersistentVolume_HostPath(KData_PersistentVolume):
     :param storageclass: storage class
     :param merge_config: A Mapping to merge on the result.
     """
-    hostpath: Mapping[Any, Any]
+    class Config(KData_PersistentVolume_Config):
+        hostpath: Mapping[Any, Any]
 
-    def __init__(self, name: str, hostpath: Mapping[Any, Any], storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
-        super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
-        self.hostpath = hostpath
+        def __init__(self, hostpath: Mapping[Any, Any], merge_config: Optional[Mapping[Any, Any]] = None):
+            super().__init__(merge_config=merge_config)
+            self.hostpath = hostpath
 
-    def build(self) -> Any:
-        return merger.merge(super().build(), {
+    def internal_build(self, req: KData_PersistentVolume_Request) -> Mapping[Any, Any]:
+        config = req.get_config(KData_PersistentVolume_HostPath.Config)
+        if not isinstance(config, KData_PersistentVolume_HostPath.Config):
+            raise InvalidParamError('Could not find configuration for PersistentVolume type hostPath')
+
+        ret = merger.merge(copy.deepcopy(super().internal_build(req)), {
             'spec': {
-                'hostPath': self.hostpath,
+                'hostPath': config.hostpath,
             },
         })
+        return ret
 
 
 class KData_PersistentVolume_NFS(KData_PersistentVolume):
@@ -182,18 +227,24 @@ class KData_PersistentVolume_NFS(KData_PersistentVolume):
     :param storageclass: storage class
     :param merge_config: A Mapping to merge on the result.
     """
-    nfs: Any
+    class Config(KData_PersistentVolume_Config):
+        nfs: Any
 
-    def __init__(self, name: str, nfs: Any, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
-        super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
-        self.nfs = nfs
+        def __init__(self, nfs: Any, merge_config: Optional[Mapping[Any, Any]] = None):
+            super().__init__(merge_config=merge_config)
+            self.nfs = nfs
 
-    def build(self) -> Any:
-        return merger.merge(super().build(), {
+    def internal_build(self, req: KData_PersistentVolume_Request) -> Mapping[Any, Any]:
+        config = req.get_config(KData_PersistentVolume_NFS.Config)
+        if not isinstance(config, KData_PersistentVolume_NFS.Config):
+            raise InvalidParamError('Could not find configuration for PersistentVolume type nfs')
+
+        ret = merger.merge(copy.deepcopy(super().internal_build(req)), {
             'spec': {
-                'nfs': self.nfs
+                'nfs': config.nfs
             },
         })
+        return ret
 
 
 class KData_PersistentVolume_CSI(KData_PersistentVolume):
@@ -205,18 +256,69 @@ class KData_PersistentVolume_CSI(KData_PersistentVolume):
     :param storageclass: storage class
     :param merge_config: A Mapping to merge on the result.
     """
-    csi: Any
+    clear_storageclass_if_volumehandle: bool
 
-    def __init__(self, name: str, csi: Any, storageclass: Optional[str] = None, merge_config: Optional[Any] = None):
-        super().__init__(name=name, storageclass=storageclass, merge_config=merge_config)
-        self.csi = csi
+    def __init__(self, clear_storageclass_if_volumehandle: bool = True):
+        self.clear_storageclass_if_volumehandle = clear_storageclass_if_volumehandle
 
-    def build(self) -> Any:
-        return merger.merge(super().build(), {
+    class Config(KData_PersistentVolume_Config):
+        csi: Mapping[Any, Any]
+
+        def __init__(self, csi: Mapping[Any, Any], merge_config: Optional[Mapping[Any, Any]] = None):
+            super().__init__(merge_config=merge_config)
+            self.csi = csi
+
+    def internal_build(self, req: KData_PersistentVolume_Request) -> Mapping[Any, Any]:
+        config = req.get_config(KData_PersistentVolume_CSI.Config)
+        if not isinstance(config, KData_PersistentVolume_CSI.Config):
+            raise InvalidParamError('Could not find configuration for PersistentVolume type CSI')
+
+        ret = merger.merge(copy.deepcopy(super().internal_build(req)), {
             'spec': {
-                'csi': self.csi
+                'csi': config.csi
             },
         })
+
+        if self.clear_storageclass_if_volumehandle and 'volumeHandle' in ret['spec']['csi'] and ret['spec']['csi']['volumeHandle'] != '':
+            ret['spec']['storageClassName'] = ''
+
+        return ret
+
+    def build_claim(self, pvc: 'KData_PersistentVolumeClaim', req: 'KData_PersistentVolumeClaim_Request') -> Mapping[Any, Any]:
+        ret = dict(super().build_claim(pvc, req))
+        if req.pvreq is not None:
+            pv = self.build(req.pvreq)
+            if self.clear_storageclass_if_volumehandle and 'volumeHandle' in pv['spec']['csi'] and \
+                    pv['spec']['csi']['volumeHandle'] != '':
+                ret['spec']['storageClassName'] = ''
+        return ret
+
+
+class KData_PersistentVolumeClaim_Request:
+    name: str
+    namespace: Optional[str]
+    pvreq: Optional[KData_PersistentVolume_Request]
+    selector_labels: Optional[Mapping[str, Any]]
+    storageclassname: Optional[str]
+    storage: Optional[str]
+    access_modes: Optional[Sequence[str]]
+    volume_name: Optional[str]
+    merge_config: Optional[Mapping[Any, Any]]
+
+    def __init__(self, name: str, namespace: Optional[str], pvreq: Optional[KData_PersistentVolume_Request] = None,
+                 selector_labels: Optional[Mapping[str, Any]] = None,
+                 storageclassname: Optional[str] = None, storage: Optional[str] = None,
+                 access_modes: Optional[Sequence[str]] = None, volume_name: Optional[str] = None,
+                 merge_config: Optional[Mapping[Any, Any]] = None):
+        self.name = name
+        self.namespace = namespace
+        self.pvreq = pvreq
+        self.selector_labels = selector_labels
+        self.storageclassname = storageclassname
+        self.storage = storage
+        self.access_modes = access_modes
+        self.volume_name = volume_name
+        self.merge_config = merge_config
 
 
 class KData_PersistentVolumeClaim(KData):
@@ -228,33 +330,72 @@ class KData_PersistentVolumeClaim(KData):
     :param namespace: claim namespace
     :param merge_config: A Mapping to merge on the result.
     """
-    name: str
-    storageclass: Optional[str]
-    namespace: Optional[str]
-    merge_config: Optional[Any]
-
-    def __init__(self, name: str, storageclass: Optional[str] = None, namespace: Optional[str] = None,
-                 merge_config: Optional[Any] = None):
-        self.name = name
-        self.storageclass = storageclass
-        self.namespace = namespace
-        self.merge_config = merge_config
-
-    def get_value(self) -> Any:
-        return merger.merge(self.build(), self.merge_config if self.merge_config is not None else {})
-
-    def build(self) -> Any:
+    def internal_build(self, req: KData_PersistentVolumeClaim_Request) -> Mapping[Any, Any]:
         ret: Dict[Any, Any] = {
             'apiVersion': 'v1',
             'kind': 'PersistentVolumeClaim',
             'metadata': {
-                'name': self.name,
+                'name': req.name,
             },
             'spec': {
             },
         }
-        if self.storageclass is not None:
-            ret['spec']['storageClassName'] = self.storageclass
-        if self.namespace is not None:
-            ret['metadata']['namespace'] = self.namespace
+
+        if req.storageclassname is not None:
+            ret['spec']['storageClassName'] = req.storageclassname
+        elif req.pvreq is not None and req.pvreq.storageclassname is not None:
+            ret['spec']['storageClassName'] = req.pvreq.storageclassname
+
+        if req.selector_labels is not None:
+            ret['spec']['selector'] = {
+                'matchLabels': req.selector_labels,
+            }
+        elif req.pvreq is not None and req.pvreq.selector_labels is not None:
+            ret['spec']['selector'] = {
+                'matchLabels': req.pvreq.selector_labels,
+            }
+
+        if req.storage is not None:
+            ret['spec']['resources'] = {
+                'requests': {
+                    'storage': req.storage,
+                },
+            }
+        elif req.pvreq is not None and req.pvreq.storage is not None:
+            ret['spec']['resources'] = {
+                'requests': {
+                    'storage': req.pvreq.storage,
+                },
+            }
+
+        if req.access_modes is not None:
+            ret['spec']['accessModes'] = req.access_modes
+        elif req.pvreq is not None and req.pvreq.access_modes is not None:
+            ret['spec']['accessModes'] = req.pvreq.access_modes
+
+        if req.volume_name is not None:
+            ret['spec']['volumeName'] = req.volume_name
+
+        return ret
+
+    def build(self, req: KData_PersistentVolumeClaim_Request) -> Mapping[Any, Any]:
+        return merger.merge(copy.deepcopy(self.internal_build(req)), req.merge_config if req.merge_config is not None else {})
+
+
+class KData_PersistentVolumeClaim_NoSelector(KData_PersistentVolumeClaim):
+    """
+    A PersistentVolumeClaim that doesn't support selectors.
+    """
+    def internal_build(self, req: KData_PersistentVolumeClaim_Request) -> Mapping[Any, Any]:
+        ret: Dict[Any, Any] = dict(copy.deepcopy(super().internal_build(req)))
+        if 'selector' in ret['spec']:
+            del ret['spec']['selector']
+            if req.volume_name is not None:
+                ret['spec']['storageClassName'] = ''
+                ret['spec']['volumeName'] = req.volume_name
+            elif req.pvreq is not None:
+                ret['spec']['storageClassName'] = ''
+                ret['spec']['volumeName'] = req.pvreq.name
+            else:
+                raise InvalidParamError('Cloud not determine volume name')
         return ret
