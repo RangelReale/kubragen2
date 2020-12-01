@@ -93,7 +93,7 @@ class KData_StorageClass(KData):
     def __init__(self, name: str):
         self.name = name
 
-    def get_value(self) -> Any:
+    def build(self) -> Mapping[Any, Any]:
         return {
             'apiVersion': 'storage.k8s.io/v1',
             'kind': 'StorageClass',
@@ -104,6 +104,11 @@ class KData_StorageClass(KData):
 
 
 class KData_PersistentVolume_Config:
+    """
+    A PersistentVolume configuration.
+
+    :param merge_config: a mapping to merge to resulting configuration
+    """
     merge_config: Optional[Mapping[Any, Any]]
 
     def __init__(self, merge_config: Optional[Mapping[Any, Any]] = None):
@@ -111,6 +116,17 @@ class KData_PersistentVolume_Config:
 
 
 class KData_PersistentVolume_Request:
+    """
+    A request for a persistent volume configuration.
+
+    :param name: persistent volume name
+    :param selector_labels: labels to be used as volume selectors
+    :param storateclassname: storage class name
+    :param storage: amount of storage to request
+    :param access_modes: access modes
+    :param merge_config: a mapping to merge to resulting configuration
+    :params configs: list of configurations for possible persistent volumes
+    """
     name: str
     selector_labels: Optional[Mapping[str, Any]]
     storageclassname: Optional[str]
@@ -133,6 +149,9 @@ class KData_PersistentVolume_Request:
         self.configs = configs
 
     def get_config(self, cls: Type[KData_PersistentVolume_Config]) -> Optional[KData_PersistentVolume_Config]:
+        """
+        Gets a configuration if the requested type.
+        """
         if self.configs is not None:
             for c in self.configs:
                 if isinstance(c, cls):
@@ -143,10 +162,6 @@ class KData_PersistentVolume_Request:
 class KData_PersistentVolume(KData):
     """
     A :class:`KData` that represents a Kubernetes PersistentVolume.
-
-    :param name: Persistent volume name
-    :param storageclass: storage class
-    :param merge_config: A Mapping to merge on the result.
     """
     def internal_build(self, req: KData_PersistentVolume_Request) -> Mapping[Any, Any]:
         ret: Dict[Any, Any] = {
@@ -192,13 +207,11 @@ class KData_PersistentVolume_EmptyDir(KData_PersistentVolume):
 class KData_PersistentVolume_HostPath(KData_PersistentVolume):
     """
     A :class:`KData` that represents a Kubernetes PersistentVolume of type HostPath.
-
-    :param name: Persistent volume name
-    :param hostpath: the hostPath path, normally a Mapping with a `path` key.
-    :param storageclass: storage class
-    :param merge_config: A Mapping to merge on the result.
     """
     class Config(KData_PersistentVolume_Config):
+        """
+        A configuration for HostPath volumes.
+        """
         hostpath: Mapping[Any, Any]
 
         def __init__(self, hostpath: Mapping[Any, Any], merge_config: Optional[Mapping[Any, Any]] = None):
@@ -221,13 +234,11 @@ class KData_PersistentVolume_HostPath(KData_PersistentVolume):
 class KData_PersistentVolume_NFS(KData_PersistentVolume):
     """
     A :class:`KData` that represents a Kubernetes PersistentVolume of type NFS.
-
-    :param name: Persistent volume name
-    :param hostpath: the nfs configuration, normally a Mapping
-    :param storageclass: storage class
-    :param merge_config: A Mapping to merge on the result.
     """
     class Config(KData_PersistentVolume_Config):
+        """
+        A configuration for nfs volumes.
+        """
         nfs: Any
 
         def __init__(self, nfs: Any, merge_config: Optional[Mapping[Any, Any]] = None):
@@ -251,10 +262,7 @@ class KData_PersistentVolume_CSI(KData_PersistentVolume):
     """
     A :class:`KData` that represents a Kubernetes PersistentVolume of type CSI.
 
-    :param name: Persistent volume name
-    :param hostpath: the CSI configuration, normally a Mapping
-    :param storageclass: storage class
-    :param merge_config: A Mapping to merge on the result.
+    :param clear_storageclass_if_volumehandle: whether to set storageclass='' if volumeHandle is not empty
     """
     clear_storageclass_if_volumehandle: bool
 
@@ -262,6 +270,9 @@ class KData_PersistentVolume_CSI(KData_PersistentVolume):
         self.clear_storageclass_if_volumehandle = clear_storageclass_if_volumehandle
 
     class Config(KData_PersistentVolume_Config):
+        """
+        A configuration for CSI volumes.
+        """
         csi: Mapping[Any, Any]
 
         def __init__(self, csi: Mapping[Any, Any], merge_config: Optional[Mapping[Any, Any]] = None):
@@ -295,6 +306,19 @@ class KData_PersistentVolume_CSI(KData_PersistentVolume):
 
 
 class KData_PersistentVolumeClaim_Request:
+    """
+    A request for a persistent volume claim configuration.
+
+    :param name: persistent volume claim name
+    :param namespace: namespace
+    :param pvreq: corresponding persistent volume request. If set, will copy settings from it.
+    :param selector_labels: labels to be used as volume selectors
+    :param storateclassname: storage class name
+    :param storage: amount of storage to request
+    :param access_modes: access modes
+    :param volume_name: volume name
+    :param merge_config: a mapping to merge to resulting configuration
+    """
     name: str
     namespace: Optional[str]
     pvreq: Optional[KData_PersistentVolume_Request]
