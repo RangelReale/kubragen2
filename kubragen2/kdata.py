@@ -324,11 +324,6 @@ class KData_PersistentVolumeClaim_Request:
 class KData_PersistentVolumeClaim(KData):
     """
     A :class:`KData` that represents a Kubernetes PersistentVolumeClaim.
-
-    :param name: Persistent volume name
-    :param storageclass: storage class
-    :param namespace: claim namespace
-    :param merge_config: A Mapping to merge on the result.
     """
     def internal_build(self, req: KData_PersistentVolumeClaim_Request) -> Mapping[Any, Any]:
         ret: Dict[Any, Any] = {
@@ -340,6 +335,9 @@ class KData_PersistentVolumeClaim(KData):
             'spec': {
             },
         }
+
+        if req.namespace is not None:
+            ret['metadata']['namespace'] = req.namespace
 
         if req.storageclassname is not None:
             ret['spec']['storageClassName'] = req.storageclassname
